@@ -1,0 +1,6 @@
+[submodule "srt"]
+	path = srt
+	url = https://github.com/cdown/srt
+[submodule "PySimpleGUI"]
+	path = PySimpleGUI
+	url = https://github.com/PySimpleGUI/PySimpleGUI
