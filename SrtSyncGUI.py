@@ -104,16 +104,24 @@ file_list_column = [
     ],
 ]
 
+if os.path.exists("savedtimes.txt"):
+    fr = open("savedtimes.txt", "r")
+    times_list = fr.read().split('\n')
+    print(times_list)
+else:
+    times_list = ['00:00:00,000', '00:00:00,000', '00:00:00,000', '00:00:00,000']
+
 # For now will only show the name of the file that was chosen
 srt_column = [
     [sg.Text("Choose an SRT from list on left:")],
     [sg.Text(size=(80, 1), key="-TOUT-")],
-    [sg.Text(text="First SRT time: "), sg.InputText(key='-F1-')],
-    [sg.Text(text="First Video time: "), sg.InputText(key='-T1-')],
-    [sg.Text(text="Second SRT time: "), sg.InputText(key='-F2-')],
-    [sg.Text(text="Second Video time: "), sg.InputText(key='-T2-')],
+    [sg.Text(text="First SRT time: "), sg.InputText(key='-F1-', default_text=times_list[0])],
+    [sg.Text(text="First Video time: "), sg.InputText(key='-T1-', default_text=times_list[1])],
+    [sg.Text(text="Second SRT time: "), sg.InputText(key='-F2-', default_text=times_list[2])],
+    [sg.Text(text="Second Video time: "), sg.InputText(key='-T2-', default_text=times_list[3])],
     [sg.Text(text="Encoding: "), sg.DropDown(['utf-8', 'latin-1'], default_value='utf-8', key='-encoding-')],
     [sg.Button("OK", key='-SYNC-')],
+    [sg.Text(size=(80, 3), key="-TOUT2-")]
 ]
 
 # ----- Full layout -----
@@ -159,21 +167,32 @@ while True:
         # window["-TOUT2-"].update(values["-F1-"])
         sys.argv = ["SrtSyncGUI.py", "--input", filename, "--f1", values["-F1-"], "--f2", values["-F2-"], "--t1", values["-T1-"],
                     "--t2",  values["-T2-"], "--output", filename.replace('.srt', '_c.srt'), "--encoding", values["-encoding-"]]
+        
         print(sys.argv)
         args = parse_args()
+
+        f = open("savedtimes.txt", "w")
+        f.write(values["-F1-"] + '\n' + values["-T1-"] + '\n' + values["-F2-"] + '\n' + values["-T2-"])
+        f.close()
+
         logging.basicConfig(level=args.log_level)
         angular, linear = calc_correction(
             args.to_start, args.to_end, args.from_start, args.from_end
         )
         srt_tools.utils.set_basic_args(args)
-        corrected_subs = linear_correct_subs(args.input, angular, linear)
-        output = srt_tools.utils.compose_suggest_on_fail(corrected_subs, strict=args.strict)
-
         try:
-            args.output.write(output)
-            args.output.close()
-        except (UnicodeEncodeError, TypeError):  # Python 2 fallback
-            args.output.write(output.encode(args.encoding))
+            corrected_subs = linear_correct_subs(args.input, angular, linear)
+            output = srt_tools.utils.compose_suggest_on_fail(corrected_subs, strict=args.strict)
+            try:
+                args.output.write(output)
+                args.output.close()
+            except (UnicodeEncodeError, TypeError):  # Python 2 fallback
+                args.output.write(output.encode(args.encoding))
+            window["-TOUT2-"].update("Success!")
+        except Exception as e:
+            window["-TOUT2-"].update("Try a different encoding\n" + str(e))
+
+        
             
         '''angular, linear = calc_correction(
             values["-T1-"], values["-T2-"], values["-F1-"], values["-F2-"]
